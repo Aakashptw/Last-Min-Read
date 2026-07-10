@@ -1,0 +1,140 @@
+************** Future VS CompletebleFuture *****************
+
+Interview perspective answer:
+
+"Future was introduced in Java 5 to represent the result of an asynchronous computation. We submit a task to an ExecutorService and receive a Future object. The main limitation is that calling get() blocks the calling thread until the computation finishes. It also doesn't support chaining, callbacks, combining multiple tasks, or robust exception handling.
+
+Java 8 introduced CompletableFuture, which extends the concept of Future and provides a rich API for asynchronous, non-blocking programming. It supports methods such as supplyAsync, runAsync, thenApply, thenCompose, thenCombine, allOf, and exceptionally to build complex asynchronous pipelines.
+
+In Spring Boot microservices, I use CompletableFuture when independent service or database calls can run in parallel—for example, fetching user details, orders, and reward points concurrently. This improves response time while keeping the code readable and maintainable."
+
+Detailed Explanation:
+
+1. First understand the problem
+
+Imagine your application needs to
+
+Call Payment Service
+Call User Service
+Call Order Service
+
+Each API takes 3 seconds. Total: 9 seconds (Everything waits for previous task to finish.)
+
+ --> With asynchronous programming
+
+All three APIs start together.
+User API      \
+Payment API    ---> Run simultaneously
+Order API     /
+
+Total = 3 seconds (This is where Java introduced Future.)
+
+2. What is Future?
+
+Definition
+
+A Future is an object that represents the result of an asynchronous computation.
+It is simply a placeholder for a value that will become available in the future.
+Think of it like ordering food online.
+
+Restaurant
+
+You order food
+↓
+Restaurant gives Token #25
+↓
+Food is being prepared
+↓
+Later you collect food using token. (The token is your Future.)
+
+--> Code Example:
+
+import java.util.concurrent.*;
+
+public class FutureDemo {
+    public static void main(String[] args) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Future<Integer> future = executor.submit(() -> {
+            Thread.sleep(2000);
+            return 10 + 20;
+        });
+
+        System.out.println("Task submitted, doing other work...");
+
+        // blocks the calling thread until result is ready
+        Integer result = future.get(); 
+        System.out.println("Result: " + result);
+
+        executor.shutdown();
+    }
+}
+
+methods --> get(), isDone(), cancel()
+
+Limitations: get() blocks the main thread 
+             cannot chain tasks
+			 cannot combine multiple Futures
+			 No Callbacks -- When task completes, Future doesn't notify
+			 
+Because of above limitations CompletableFuture got introduced in Java 8.\
+
+CompletableFuture is an improved version of Future.
+
+It supports
+
+Non-blocking
+Callback
+Chaining
+Combining multiple tasks
+Exception handling
+
+It is one of the biggest improvements in Java 8.
+
+For Example:
+
+Swiggy
+↓
+Food prepared
+↓
+Automatically notify
+↓
+Delivery partner assigned
+↓
+Track order
+↓
+Pay online
+↓
+Rate food (Everything is done parallel --> none is blocked)
+
+Code Example:
+
+import java.util.concurrent.CompletableFuture;
+
+public class CompletableFutureDemo {
+    public static void main(String[] args) {
+
+        CompletableFuture<Integer> cf = CompletableFuture.supplyAsync(() -> {
+            simulateDelay();
+            return 10 + 20;
+        });
+
+        cf.thenApply(result -> result * 2)          // transform result
+          .thenAccept(finalResult -> 
+              System.out.println("Final: " + finalResult))  // consume, no return
+          .exceptionally(ex -> {
+              System.out.println("Error: " + ex.getMessage());
+              return null;
+          });
+
+        System.out.println("Main thread free to do other work...");
+
+        // keep JVM alive to see async output in this simple demo
+        cf.join(); 
+    }
+
+    static void simulateDelay() {
+        try { Thread.sleep(1000); } catch (InterruptedException e) {}
+    }
+}
+
