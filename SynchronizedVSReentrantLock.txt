@@ -1,0 +1,116 @@
+
+Interview perspective answer:
+
+"synchronized is a built-in Java keyword used for mutual exclusion. It ensures only one thread at a time can execute a synchronized method or block by acquiring the object's monitor lock. It's simple, automatically releases the lock when execution exits the block, and is suitable for most basic synchronization scenarios.
+
+ReentrantLock, introduced in Java 5, provides the same mutual exclusion but with additional capabilities. It supports features like tryLock(), timed lock acquisition, lockInterruptibly(), optional fairness, and multiple Condition objects. Because it's an explicit lock, we must always release it in a finally block to avoid leaving the lock held.
+
+In practice, I use synchronized for straightforward critical sections. If the business requirement needs advanced lock management—for example, timing out instead of waiting indefinitely or supporting interruptible lock acquisition—I prefer ReentrantLock."
+
+*************** Synchronized ****************
+
+Imagine two people are trying to withdraw money from the same bank account.
+
+Current balance: 1000
+Thread 1: 700 withdraws
+Thread 2: 500 withdraws
+
+--> Without syncronization:
+
+Thread 1 reads balance = 1000
+Thread 2 also reads balance = 1000
+Thread 1 writes balance = 300
+Thread 2 writes balance = 500
+
+Final balance becomes 500
+
+--> correct balance:
+
+₹1000 - ₹700 = ₹300
+₹300 - ₹500 = Not allowed
+
+--> This problem is called a Race Condition.
+
+---> What is Race Condition?
+A race condition occurs when multiple threads access and modify shared data at the same time, leading to unpredictable results.
+
+Thread A
+        \
+         ---> Shared Variable
+        /
+Thread B
+
+--> What is synchronized?
+
+synchronized is a Java keyword that ensures only one thread can execute a synchronized block or method at a time.
+
+--> Ex:
+
+Think of it like a bathroom with a single key.
+Bathroom
+        🔑
+Person A enters
+↓
+Door locked
+↓
+Person B waits outside
+↓
+Person A exits
+↓
+Person B enters
+
+--> Code Example:
+
+class Counter {
+
+    private int count = 0;
+
+    public synchronized void increment() {
+        count++;
+    }
+
+    public int getCount() {
+        return count;
+    }
+}
+
+---> Limitation of Synchronized:
+
+- Cannot interrupt waiting thread 
+
+Suppose Thread A holds the lock.
+Thread B waits.
+Even if Thread B wants to stop, it cannot.
+It stays blocked until the monitor is released.
+
+- Cannot try for a lock
+
+Because of these limitations,-----------------------------------
+
+--> Java 5 introduced: ReentrantLock
+
+ReentrantLock is a class in java.util.concurrent.locks that provides the same mutual exclusion as synchronized but with additional features and greater flexibility.
+
+"Reentrant" means the same thread can acquire the same lock multiple times.
+
+--> Code Example:
+
+import java.util.concurrent.locks.ReentrantLock;
+
+class Counter {
+    private int count = 0;
+    private ReentrantLock lock = new ReentrantLock();
+    public void increment() {
+
+        lock.lock();
+
+        try {
+            count++;
+        } finally {
+            lock.unlock();
+        }
+    }
+    public int getCount() {
+        return count;
+    }
+}
