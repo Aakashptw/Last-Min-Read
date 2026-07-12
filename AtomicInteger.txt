@@ -1,0 +1,113 @@
+*************** AtomicInteger *************************
+
+-->Interview Perspective answer:
+
+"AtomicInteger is a thread-safe class introduced in Java 5 under the java.util.concurrent.atomic package. Unlike synchronized, it doesn't use locks. Instead, it relies on the CPU's Compare-And-Swap (CAS) operation to update values atomically. This makes it very efficient for simple operations such as incrementing or decrementing a single shared counter.
+
+synchronized uses an object monitor, allowing only one thread at a time to execute the critical section. It's more suitable when multiple variables or multiple statements must execute atomically as one unit.
+
+In practice, I use AtomicInteger for counters, metrics, or request tracking. When I need to protect complex business logic involving multiple shared variables or operations, I use synchronized or ReentrantLock because they guarantee mutual exclusion for the entire critical section.`
+
+
+--> Problem Statement:
+
+
+First understand the problem:
+
+Suppose multiple threads are updating a shared counter.
+int count = 0;
+
+Two threads execute:
+count++;
+
+At first glance, it looks like a single operation.
+But internally, it is not.
+What happens internally in count++?
+
+The statement
+count++;
+
+actually performs three operations:
+
+Step 1: Read count from memory
+count = 5
+↓
+Step 2: Increment
+5 + 1 = 6
+↓
+Step 3: Write back
+count = 6
+Now imagine two threads.
+
+Thread 1
+Reads count = 5
+Thread 2
+Reads count = 5
+
+Both increment.
+
+Thread 1 writes 6
+Thread 2 also writes 6
+
+Expected:
+7
+
+Actual:
+6
+
+One update is lost.
+This is another example of a Race Condition.
+
+
+--> Solution using synchronized:
+
+class Counter {
+
+    private int count = 0;
+
+    public synchronized void increment() {
+        count++;
+    }
+
+    public int getCount() {
+        return count;
+    }
+}
+
+--> Limitation of synchronized
+
+Suppose incrementing the counter takes only a few nanoseconds.
+
+Even then:
+
+Thread A acquires a lock.
+Thread B waits.
+JVM manages monitor acquisition and release.
+
+For very small operations like incrementing a number, locking introduces unnecessary overhead.
+Java introduced Atomic Classes to solve this efficiently.
+
+--> What is AtomicInteger?
+
+AtomicInteger is a class in the package:
+java.util.concurrent.atomic
+
+It provides thread-safe operations on an integer without using explicit locks.
+Instead of locking, it uses a low-level CPU instruction called Compare-And-Swap (CAS).
+
+--> Code Example::
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+class Counter {
+
+    private AtomicInteger count = new AtomicInteger(0);
+
+    public void increment() {
+        count.incrementAndGet();
+    }
+
+    public int getCount() {
+        return count.get();
+    }
+}
